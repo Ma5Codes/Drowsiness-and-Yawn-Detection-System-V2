@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Page Not Found - DrowsiSense{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div style="text-align: center; padding: 4rem 2rem;">
+        <div style="font-size: 6rem; margin-bottom: 1rem;">🔍</div>
+        <h1 style="color: var(--text-primary); margin-bottom: 1rem;">Page Not Found</h1>
+        <p style="color: var(--text-secondary); margin-bottom: 2rem; font-size: 1.1rem;">
+            The page you're looking for doesn't exist or has been moved.
+        </p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="{% url 'home' %}" class="btn-modern btn-primary">
+                <i class="fas fa-home"></i>
+                Go Home
+            </a>
+            <a href="{% url 'driver_dashboard' %}" class="btn-modern btn-outline">
+                <i class="fas fa-tachometer-alt"></i>
+                Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
