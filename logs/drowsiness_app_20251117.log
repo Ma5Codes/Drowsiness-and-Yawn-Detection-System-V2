@@ -1,0 +1,4 @@
+2025-11-17 23:53:49 [INFO] drowsiness_app:89 - setup_logging() - Logging system initialized successfully
+2025-11-17 23:54:47 [INFO] drowsiness_app:89 - setup_logging() - Logging system initialized successfully
+2025-11-17 23:54:50 [ERROR] drowsiness_app:65 - handle() - Migration failed: relation "custom_user" does not exist
+
