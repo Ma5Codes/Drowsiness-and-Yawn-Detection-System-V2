@@ -1,0 +1,587 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - DrowsiSense{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Dashboard-specific styles */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.stats-card {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: white;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  transform: translate(30px, -30px);
+}
+
+.stats-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.stats-label {
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.monitoring-panel {
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 2rem;
+  text-align: center;
+  transition: var(--transition);
+}
+
+.monitoring-panel.active {
+  border-color: var(--accent-success);
+  background: linear-gradient(135deg, rgba(25, 135, 84, 0.1), rgba(25, 135, 84, 0.05));
+}
+
+.monitoring-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: var(--text-secondary);
+  transition: var(--transition);
+}
+
+.monitoring-panel.active .monitoring-icon {
+  background: var(--accent-success);
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.alert-item {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  position: relative;
+  transition: var(--transition);
+}
+
+.alert-item:hover {
+  box-shadow: 0 4px 8px var(--shadow);
+}
+
+.alert-item.severity-high {
+  border-left: 4px solid var(--accent-danger);
+}
+
+.alert-item.severity-medium {
+  border-left: 4px solid var(--accent-warning);
+}
+
+.alert-item.severity-low {
+  border-left: 4px solid var(--accent-primary);
+}
+
+.alert-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.alert-type {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.alert-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.alert-description {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.settings-form {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.form-control {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: var(--border-radius-sm);
+  transition: var(--transition);
+}
+
+.form-control:focus {
+  background: var(--bg-primary);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  color: var(--text-primary);
+}
+
+.quick-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .quick-actions {
+    flex-direction: column;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h2 mb-1" style="color: var(--text-primary);">Driver Dashboard</h1>
+      <p class="text-muted mb-0">Welcome back, {{ user.first_name|default:user.email }}</p>
+    </div>
+    <div class="quick-actions">
+      <button class="btn-modern btn-primary" onclick="testCamera()">
+        <i class="fas fa-video"></i>
+        Test Camera
+      </button>
+      <button class="btn-modern btn-outline" onclick="refreshDashboard()">
+        <i class="fas fa-sync-alt"></i>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="dashboard-grid">
+    <div class="modern-card stats-card">
+      <div class="stats-number">{{ alert_stats.total_alerts|default:0 }}</div>
+      <div class="stats-label">Total Alerts (7 days)</div>
+    </div>
+    <div class="modern-card" style="background: linear-gradient(135deg, var(--accent-success), #48bb78);">
+      <div class="stats-number" style="color: white;">
+        {{ driver_profile.created_at|timesince|truncatewords:1 }}
+      </div>
+      <div class="stats-label" style="color: white; opacity: 0.9;">Account Age</div>
+    </div>
+    <div class="modern-card" style="background: linear-gradient(135deg, var(--accent-warning), #ed8936);">
+      <div class="stats-number" style="color: white;">
+        {{ alert_stats.average_per_day|default:0|floatformat:1 }}
+      </div>
+      <div class="stats-label" style="color: white; opacity: 0.9;">Avg Alerts/Day</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Monitoring Control -->
+    <div class="col-md-6 mb-4">
+      <div class="modern-card">
+        <div class="card-header">
+          <h5 class="card-title">
+            <i class="fas fa-video me-2"></i>
+            Monitoring Control
+          </h5>
+          <div class="status-indicator">
+            <div class="status-dot idle" id="dashboard-status-dot"></div>
+            <span id="dashboard-status-text">Idle</span>
+          </div>
+        </div>
+        
+        <div class="monitoring-panel" id="monitoring-panel">
+          <div class="monitoring-icon">
+            <i class="fas fa-eye" id="monitoring-icon"></i>
+          </div>
+          <h5 id="monitoring-status-text">Ready to Monitor</h5>
+          <p class="text-muted mb-3" id="monitoring-description">
+            Click start to begin real-time drowsiness detection
+          </p>
+          
+          <div class="d-flex gap-2 justify-content-center">
+            <button class="btn-modern btn-success" id="start-monitoring-btn" onclick="startMonitoring()">
+              <i class="fas fa-play me-1"></i>
+              Start Monitoring
+            </button>
+            <button class="btn-modern btn-danger" id="stop-monitoring-btn" onclick="stopMonitoring()" style="display: none;">
+              <i class="fas fa-stop me-1"></i>
+              Stop Monitoring
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Alerts -->
+    <div class="col-md-6 mb-4">
+      <div class="modern-card">
+        <div class="card-header">
+          <h5 class="card-title">
+            <i class="fas fa-bell me-2"></i>
+            Recent Alerts
+          </h5>
+          <button class="btn-modern btn-outline btn-sm" onclick="refreshAlerts()">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+        
+        <div id="alerts-container" style="max-height: 400px; overflow-y: auto;">
+          {% if alerts %}
+            {% for alert in alerts %}
+            <div class="alert-item severity-{{ alert.severity|default:'medium' }}">
+              <div class="alert-header">
+                <div class="alert-type">
+                  {% if alert.alert_type == 'drowsiness' %}
+                    <i class="fas fa-eye-slash text-danger"></i>
+                  {% elif alert.alert_type == 'yawning' %}
+                    <i class="fas fa-yawn text-warning"></i>
+                  {% else %}
+                    <i class="fas fa-exclamation-triangle text-info"></i>
+                  {% endif %}
+                  {{ alert.alert_type|title }}
+                </div>
+                <div class="alert-time">{{ alert.timestamp|timesince }} ago</div>
+              </div>
+              <div class="alert-description">
+                {{ alert.description|default:"Alert detected" }}
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center text-muted py-4">
+              <i class="fas fa-bell-slash fa-2x mb-2"></i>
+              <p>No alerts yet. Start monitoring to see activity.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Section -->
+  <div class="row">
+    <div class="col-md-6 mb-4">
+      <div class="modern-card">
+        <div class="card-header">
+          <h5 class="card-title">
+            <i class="fas fa-sliders-h me-2"></i>
+            Detection Settings
+          </h5>
+        </div>
+        
+        <form method="post" action="{% url 'update_settings' %}" class="settings-form">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="form-label">Eye Aspect Ratio Threshold</label>
+            <input type="number" step="0.01" min="0.1" max="0.8" 
+                   class="form-control" name="ear_threshold" 
+                   value="{{ user_settings.ear_threshold|default:0.3 }}">
+            <small class="text-muted">Lower values = more sensitive (0.1-0.8)</small>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Detection Frames</label>
+            <input type="number" min="5" max="100" 
+                   class="form-control" name="ear_frames" 
+                   value="{{ user_settings.ear_frames|default:30 }}">
+            <small class="text-muted">Consecutive frames before alert (5-100)</small>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Yawn Threshold</label>
+            <input type="number" min="5" max="50" 
+                   class="form-control" name="yawn_threshold" 
+                   value="{{ user_settings.yawn_threshold|default:20 }}">
+            <small class="text-muted">Mouth opening threshold (5-50)</small>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Alert Frequency</label>
+            <select class="form-control" name="alert_frequency">
+              <option value="low" {% if user_settings.alert_frequency == 'low' %}selected{% endif %}>Low</option>
+              <option value="medium" {% if user_settings.alert_frequency == 'medium' %}selected{% endif %}>Medium</option>
+              <option value="high" {% if user_settings.alert_frequency == 'high' %}selected{% endif %}>High</option>
+            </select>
+          </div>
+          
+          <button type="submit" class="btn-modern btn-primary">
+            <i class="fas fa-save me-1"></i>
+            Save Settings
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Profile Settings -->
+    <div class="col-md-6 mb-4">
+      <div class="modern-card">
+        <div class="card-header">
+          <h5 class="card-title">
+            <i class="fas fa-user me-2"></i>
+            Profile Information
+          </h5>
+        </div>
+        
+        <form method="post" action="{% url 'update_profile' %}" class="settings-form">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="form-label">License Number</label>
+            <input type="text" class="form-control" name="license_number" 
+                   value="{{ driver_profile.license_number }}" placeholder="Enter license number">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input type="text" class="form-control" name="phone_number" 
+                   value="{{ driver_profile.phone_number }}" placeholder="Enter phone number">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" value="{{ user.email }}" disabled>
+            <small class="text-muted">Email cannot be changed</small>
+          </div>
+          
+          <button type="submit" class="btn-modern btn-primary">
+            <i class="fas fa-save me-1"></i>
+            Update Profile
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript for Dashboard Functionality -->
+<script>
+// Monitoring Control Functions
+async function startMonitoring() {
+  const startBtn = document.getElementById('start-monitoring-btn');
+  const stopBtn = document.getElementById('stop-monitoring-btn');
+  const panel = document.getElementById('monitoring-panel');
+  const statusText = document.getElementById('monitoring-status-text');
+  const description = document.getElementById('monitoring-description');
+  const icon = document.getElementById('monitoring-icon');
+  
+  startBtn.disabled = true;
+  startBtn.innerHTML = '<div class="loading-spinner"></div> Starting...';
+  
+  try {
+    const response = await fetch('{% url "toggle_monitoring" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      },
+      body: 'action=start'
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      panel.classList.add('active');
+      statusText.textContent = 'Monitoring Active';
+      description.textContent = 'Real-time drowsiness detection in progress';
+      icon.className = 'fas fa-eye';
+      startBtn.style.display = 'none';
+      stopBtn.style.display = 'inline-flex';
+      updateMonitoringStatus(true);
+      
+      showNotification('Monitoring started successfully!', 'success');
+    } else {
+      throw new Error(data.message || 'Failed to start monitoring');
+    }
+  } catch (error) {
+    showNotification('Error: ' + error.message, 'error');
+    console.error('Start monitoring error:', error);
+  }
+  
+  startBtn.disabled = false;
+  startBtn.innerHTML = '<i class="fas fa-play me-1"></i> Start Monitoring';
+}
+
+async function stopMonitoring() {
+  const startBtn = document.getElementById('start-monitoring-btn');
+  const stopBtn = document.getElementById('stop-monitoring-btn');
+  const panel = document.getElementById('monitoring-panel');
+  const statusText = document.getElementById('monitoring-status-text');
+  const description = document.getElementById('monitoring-description');
+  const icon = document.getElementById('monitoring-icon');
+  
+  stopBtn.disabled = true;
+  stopBtn.innerHTML = '<div class="loading-spinner"></div> Stopping...';
+  
+  try {
+    const response = await fetch('{% url "toggle_monitoring" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      },
+      body: 'action=stop'
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      panel.classList.remove('active');
+      statusText.textContent = 'Ready to Monitor';
+      description.textContent = 'Click start to begin real-time drowsiness detection';
+      icon.className = 'fas fa-eye-slash';
+      stopBtn.style.display = 'none';
+      startBtn.style.display = 'inline-flex';
+      updateMonitoringStatus(false);
+      
+      showNotification('Monitoring stopped successfully!', 'success');
+    } else {
+      throw new Error(data.message || 'Failed to stop monitoring');
+    }
+  } catch (error) {
+    showNotification('Error: ' + error.message, 'error');
+    console.error('Stop monitoring error:', error);
+  }
+  
+  stopBtn.disabled = false;
+  stopBtn.innerHTML = '<i class="fas fa-stop me-1"></i> Stop Monitoring';
+}
+
+// Utility Functions
+function testCamera() {
+  window.open('{% url "camera_test" %}', '_blank');
+}
+
+function refreshDashboard() {
+  location.reload();
+}
+
+function refreshAlerts() {
+  // Implement alert refresh via AJAX
+  showNotification('Refreshing alerts...', 'info');
+  setTimeout(() => {
+    location.reload();
+  }, 1000);
+}
+
+function showNotification(message, type = 'info') {
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+  notification.style.top = '90px';
+  notification.style.right = '20px';
+  notification.style.zIndex = '9999';
+  notification.style.minWidth = '300px';
+  
+  notification.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i>
+      ${message}
+    </div>
+    <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Auto remove after 5 seconds
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, 5000);
+}
+
+// Update monitoring status in header
+function updateMonitoringStatus(isMonitoring) {
+  // Call the parent function from base.html
+  if (typeof window.updateMonitoringStatus === 'function') {
+    window.updateMonitoringStatus(isMonitoring);
+  }
+  
+  // Update dashboard status indicators
+  const dashboardStatusDot = document.getElementById('dashboard-status-dot');
+  const dashboardStatusText = document.getElementById('dashboard-status-text');
+  
+  if (dashboardStatusDot && dashboardStatusText) {
+    if (isMonitoring) {
+      dashboardStatusDot.className = 'status-dot monitoring';
+      dashboardStatusText.textContent = 'Monitoring';
+    } else {
+      dashboardStatusDot.className = 'status-dot idle';
+      dashboardStatusText.textContent = 'Idle';
+    }
+  }
+}
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+  // Check initial monitoring status
+  fetch('{% url "monitoring_status" %}')
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.status) {
+        updateMonitoringStatus(data.status.is_monitoring);
+        
+        if (data.status.is_monitoring) {
+          const panel = document.getElementById('monitoring-panel');
+          const statusText = document.getElementById('monitoring-status-text');
+          const description = document.getElementById('monitoring-description');
+          const startBtn = document.getElementById('start-monitoring-btn');
+          const stopBtn = document.getElementById('stop-monitoring-btn');
+          
+          panel.classList.add('active');
+          statusText.textContent = 'Monitoring Active';
+          description.textContent = 'Real-time drowsiness detection in progress';
+          startBtn.style.display = 'none';
+          stopBtn.style.display = 'inline-flex';
+        }
+      }
+    })
+    .catch(error => console.log('Status check failed:', error));
+});
+</script>
+{% endblock %}

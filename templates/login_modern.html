@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sign In - DrowsiSense{% endblock %}
+
+{% block extra_css %}
+<style>
+.auth-container {
+  min-height: calc(100vh - var(--header-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary));
+}
+
+.auth-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: 0 10px 30px var(--shadow-lg);
+  padding: 3rem;
+  width: 100%;
+  max-width: 400px;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.auth-subtitle {
+  color: var(--text-secondary);
+  margin-bottom: 0;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.form-control-modern {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+.form-control-modern:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  background: var(--bg-primary);
+}
+
+.form-control-modern::placeholder {
+  color: var(--text-muted);
+}
+
+.input-group {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  z-index: 1;
+}
+
+.form-control-modern.has-icon {
+  padding-left: 3rem;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  z-index: 1;
+}
+
+.password-toggle:hover {
+  color: var(--accent-primary);
+}
+
+.btn-auth {
+  width: 100%;
+  padding: 0.875rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: var(--border-radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.btn-auth-primary {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: white;
+}
+
+.btn-auth-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px var(--shadow);
+}
+
+.btn-auth-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auth-divider {
+  text-align: center;
+  margin: 2rem 0;
+  position: relative;
+}
+
+.auth-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.auth-divider span {
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  padding: 0 1rem;
+  font-size: 0.875rem;
+}
+
+.auth-links {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.auth-links a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-links a:hover {
+  text-decoration: underline;
+}
+
+.demo-credentials {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.demo-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.demo-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+  color: var(--text-secondary);
+}
+
+.loading-spinner-btn {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 2rem;
+    margin: 1rem;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header">
+      <h1 class="auth-title">Welcome Back</h1>
+      <p class="auth-subtitle">Sign in to your DrowsiSense account</p>
+    </div>
+
+    <!-- Demo Credentials (for portfolio/testing) -->
+    <div class="demo-credentials">
+      <div class="demo-title">
+        <i class="fas fa-info-circle me-1"></i>
+        Demo Access
+      </div>
+      <div class="demo-item">
+        <span>Email:</span>
+        <span>demo@drowsisense.com</span>
+      </div>
+      <div class="demo-item">
+        <span>Password:</span>
+        <span>demo123</span>
+      </div>
+    </div>
+
+    <form method="post" id="login-form">
+      {% csrf_token %}
+      
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <div class="input-group">
+          <i class="fas fa-envelope input-icon"></i>
+          <input 
+            type="email" 
+            name="username" 
+            class="form-control-modern has-icon"
+            placeholder="Enter your email"
+            required
+            autocomplete="email"
+          >
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-group">
+          <i class="fas fa-lock input-icon"></i>
+          <input 
+            type="password" 
+            name="password" 
+            id="password"
+            class="form-control-modern has-icon"
+            placeholder="Enter your password"
+            required
+            autocomplete="current-password"
+          >
+          <button type="button" class="password-toggle" onclick="togglePassword()">
+            <i class="fas fa-eye" id="password-icon"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 2rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <input type="checkbox" id="remember" name="remember" style="accent-color: var(--accent-primary);">
+          <label for="remember" style="color: var(--text-secondary); font-size: 0.875rem; margin: 0;">
+            Remember me for 30 days
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-auth btn-auth-primary" id="login-btn">
+        <i class="fas fa-sign-in-alt"></i>
+        <span>Sign In</span>
+      </button>
+    </form>
+
+    <div class="auth-divider">
+      <span>or</span>
+    </div>
+
+    <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+      <button type="button" class="btn-auth" style="background: #db4437; color: white; flex: 1;" onclick="fillDemoCredentials()">
+        <i class="fab fa-google"></i>
+        <span>Demo Login</span>
+      </button>
+      <button type="button" class="btn-auth" style="background: var(--bg-tertiary); color: var(--text-primary); flex: 1;" onclick="testCamera()">
+        <i class="fas fa-video"></i>
+        <span>Test Camera</span>
+      </button>
+    </div>
+
+    <div class="auth-links">
+      <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">
+        Don't have an account? 
+        <a href="{% url 'register' %}">Create one now</a>
+      </p>
+      <p style="color: var(--text-secondary); margin: 0;">
+        <a href="#" style="font-size: 0.875rem;">Forgot your password?</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+function togglePassword() {
+  const passwordInput = document.getElementById('password');
+  const passwordIcon = document.getElementById('password-icon');
+  
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    passwordIcon.className = 'fas fa-eye-slash';
+  } else {
+    passwordInput.type = 'password';
+    passwordIcon.className = 'fas fa-eye';
+  }
+}
+
+function fillDemoCredentials() {
+  document.querySelector('input[name="username"]').value = 'demo@drowsisense.com';
+  document.querySelector('input[name="password"]').value = 'demo123';
+}
+
+function testCamera() {
+  window.open('{% url "camera_test" %}', '_blank');
+}
+
+// Form submission handling
+document.getElementById('login-form').addEventListener('submit', function(e) {
+  const submitBtn = document.getElementById('login-btn');
+  const btnText = submitBtn.querySelector('span');
+  const btnIcon = submitBtn.querySelector('i');
+  
+  // Show loading state
+  submitBtn.disabled = true;
+  btnIcon.className = 'loading-spinner-btn';
+  btnText.textContent = 'Signing In...';
+  
+  // Let form submit naturally
+});
+
+// Auto-focus on email input
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelector('input[name="username"]').focus();
+});
+</script>
+{% endblock %}

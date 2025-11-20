@@ -1,0 +1,442 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sign Up - DrowsiSense{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Reuse auth styles from login */
+.auth-container {
+  min-height: calc(100vh - var(--header-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary));
+}
+
+.auth-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: 0 10px 30px var(--shadow-lg);
+  padding: 3rem;
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.auth-subtitle {
+  color: var(--text-secondary);
+  margin-bottom: 0;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.form-control-modern {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+.form-control-modern:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  background: var(--bg-primary);
+}
+
+.form-control-modern::placeholder {
+  color: var(--text-muted);
+}
+
+.input-group {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  z-index: 1;
+}
+
+.form-control-modern.has-icon {
+  padding-left: 3rem;
+}
+
+.btn-auth {
+  width: 100%;
+  padding: 0.875rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: var(--border-radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.btn-auth-primary {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: white;
+}
+
+.btn-auth-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px var(--shadow);
+}
+
+.auth-links {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.auth-links a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-links a:hover {
+  text-decoration: underline;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.password-strength {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.strength-meter {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  margin: 0.5rem 0;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  width: 0;
+  transition: var(--transition);
+  border-radius: 2px;
+}
+
+.strength-weak { background: var(--accent-danger); width: 25%; }
+.strength-fair { background: var(--accent-warning); width: 50%; }
+.strength-good { background: var(--accent-primary); width: 75%; }
+.strength-strong { background: var(--accent-success); width: 100%; }
+
+.feature-highlights {
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-sm);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.feature-item:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 2rem;
+    margin: 1rem;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header">
+      <h1 class="auth-title">Join DrowsiSense</h1>
+      <p class="auth-subtitle">Create your account to start monitoring</p>
+    </div>
+
+    <!-- Feature Highlights -->
+    <div class="feature-highlights">
+      <div class="feature-item">
+        <i class="fas fa-check-circle" style="color: var(--accent-success);"></i>
+        <span>Real-time drowsiness detection</span>
+      </div>
+      <div class="feature-item">
+        <i class="fas fa-check-circle" style="color: var(--accent-success);"></i>
+        <span>Instant safety alerts</span>
+      </div>
+      <div class="feature-item">
+        <i class="fas fa-check-circle" style="color: var(--accent-success);"></i>
+        <span>Advanced analytics dashboard</span>
+      </div>
+      <div class="feature-item">
+        <i class="fas fa-check-circle" style="color: var(--accent-success);"></i>
+        <span>Free to use, always</span>
+      </div>
+    </div>
+
+    <form method="post" id="register-form">
+      {% csrf_token %}
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          <div class="input-group">
+            <i class="fas fa-user input-icon"></i>
+            <input 
+              type="text" 
+              name="first_name" 
+              class="form-control-modern has-icon"
+              placeholder="First name"
+              autocomplete="given-name"
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          <div class="input-group">
+            <i class="fas fa-user input-icon"></i>
+            <input 
+              type="text" 
+              name="last_name" 
+              class="form-control-modern has-icon"
+              placeholder="Last name"
+              autocomplete="family-name"
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <div class="input-group">
+          <i class="fas fa-envelope input-icon"></i>
+          <input 
+            type="email" 
+            name="email" 
+            class="form-control-modern has-icon"
+            placeholder="Enter your email"
+            required
+            autocomplete="email"
+          >
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-group">
+          <i class="fas fa-lock input-icon"></i>
+          <input 
+            type="password" 
+            name="password1" 
+            id="password1"
+            class="form-control-modern has-icon"
+            placeholder="Create a password"
+            required
+            autocomplete="new-password"
+            oninput="checkPasswordStrength(this.value)"
+          >
+        </div>
+        <div class="password-strength">
+          <div class="strength-meter">
+            <div class="strength-fill" id="strength-fill"></div>
+          </div>
+          <span id="strength-text" style="color: var(--text-muted);">Password strength</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Confirm Password</label>
+        <div class="input-group">
+          <i class="fas fa-lock input-icon"></i>
+          <input 
+            type="password" 
+            name="password2" 
+            id="password2"
+            class="form-control-modern has-icon"
+            placeholder="Confirm your password"
+            required
+            autocomplete="new-password"
+            oninput="checkPasswordMatch()"
+          >
+        </div>
+        <div id="password-match" style="font-size: 0.875rem; margin-top: 0.5rem;"></div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 2rem;">
+        <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+          <input type="checkbox" id="terms" name="terms" required style="accent-color: var(--accent-primary); margin-top: 0.25rem;">
+          <label for="terms" style="color: var(--text-secondary); font-size: 0.875rem; margin: 0; line-height: 1.4;">
+            I agree to the <a href="#" style="color: var(--accent-primary);">Terms of Service</a> and 
+            <a href="#" style="color: var(--accent-primary);">Privacy Policy</a>
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-auth btn-auth-primary" id="register-btn">
+        <i class="fas fa-user-plus"></i>
+        <span>Create Account</span>
+      </button>
+    </form>
+
+    <div class="auth-links">
+      <p style="color: var(--text-secondary); margin: 0;">
+        Already have an account? 
+        <a href="{% url 'login' %}">Sign in here</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+function checkPasswordStrength(password) {
+  const strengthFill = document.getElementById('strength-fill');
+  const strengthText = document.getElementById('strength-text');
+  
+  let strength = 0;
+  let text = 'Very weak';
+  let className = '';
+  
+  if (password.length >= 8) strength++;
+  if (/[a-z]/.test(password)) strength++;
+  if (/[A-Z]/.test(password)) strength++;
+  if (/[0-9]/.test(password)) strength++;
+  if (/[^A-Za-z0-9]/.test(password)) strength++;
+  
+  switch (strength) {
+    case 0:
+    case 1:
+      text = 'Very weak';
+      className = 'strength-weak';
+      break;
+    case 2:
+      text = 'Weak';
+      className = 'strength-weak';
+      break;
+    case 3:
+      text = 'Fair';
+      className = 'strength-fair';
+      break;
+    case 4:
+      text = 'Good';
+      className = 'strength-good';
+      break;
+    case 5:
+      text = 'Strong';
+      className = 'strength-strong';
+      break;
+  }
+  
+  strengthFill.className = `strength-fill ${className}`;
+  strengthText.textContent = text;
+}
+
+function checkPasswordMatch() {
+  const password1 = document.getElementById('password1').value;
+  const password2 = document.getElementById('password2').value;
+  const matchDiv = document.getElementById('password-match');
+  
+  if (password2.length === 0) {
+    matchDiv.textContent = '';
+    return;
+  }
+  
+  if (password1 === password2) {
+    matchDiv.innerHTML = '<i class="fas fa-check" style="color: var(--accent-success);"></i> Passwords match';
+    matchDiv.style.color = 'var(--accent-success)';
+  } else {
+    matchDiv.innerHTML = '<i class="fas fa-times" style="color: var(--accent-danger);"></i> Passwords don\'t match';
+    matchDiv.style.color = 'var(--accent-danger)';
+  }
+}
+
+// Form submission handling
+document.getElementById('register-form').addEventListener('submit', function(e) {
+  const password1 = document.getElementById('password1').value;
+  const password2 = document.getElementById('password2').value;
+  
+  if (password1 !== password2) {
+    e.preventDefault();
+    alert('Passwords do not match. Please try again.');
+    return;
+  }
+  
+  const submitBtn = document.getElementById('register-btn');
+  const btnText = submitBtn.querySelector('span');
+  const btnIcon = submitBtn.querySelector('i');
+  
+  // Show loading state
+  submitBtn.disabled = true;
+  btnIcon.className = 'loading-spinner-btn';
+  btnText.textContent = 'Creating Account...';
+});
+
+// Auto-focus on first input
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelector('input[name="first_name"]').focus();
+});
+</script>
+{% endblock %}
