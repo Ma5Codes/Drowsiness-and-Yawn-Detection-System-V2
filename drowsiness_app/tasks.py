@@ -1,17 +1,27 @@
 import asyncio
 import os
 import cv2
-import dlib
 import imutils
-import pygame.mixer
-from imutils import face_utils
-from imutils.video import VideoStream
-from scipy.spatial import distance as dist
-from .models import Alert, DriverProfile
 import numpy as np
 from asgiref.sync import sync_to_async
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
+from .models import Alert, DriverProfile
+
+# Conditional imports for production compatibility
+try:
+    import dlib
+    from imutils import face_utils
+    from imutils.video import VideoStream
+    from scipy.spatial import distance as dist
+    import pygame.mixer
+    DLIB_AVAILABLE = True
+except ImportError:
+    DLIB_AVAILABLE = False
+    print("Warning: dlib not available - using production detection method")
+
+# Import production-safe detection
+from .detection_production import get_production_detector
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -60,6 +70,23 @@ async def drowsiness_detection_task(
     webcam_index, ear_thresh, ear_frames, yawn_thresh, driver_profile, driver_email
 ):
     print("Drowsiness detection task started.")
+    
+    # Check if we can use dlib or need production detector
+    if not DLIB_AVAILABLE:
+        print("Using production detection method (no dlib)")
+        detector = get_production_detector()
+        if not detector:
+            print("Error: Could not create production detector")
+            return
+        
+        # Use production detection method
+        await production_drowsiness_detection(
+            webcam_index, ear_thresh, ear_frames, yawn_thresh, driver_profile, driver_email, detector
+        )
+        return
+    
+    # Original dlib-based detection
+    print("Using dlib-based detection")
     alarm_status = False
     alarm_status2 = False
     saying = False
@@ -228,3 +255,105 @@ async def drowsiness_detection_task(
     cv2.destroyAllWindows()
     vs.stop()
     print("Drowsiness detection task completed.")
+
+
+async def production_drowsiness_detection(
+    webcam_index, ear_thresh, ear_frames, yawn_thresh, driver_profile, driver_email, detector
+):
+    """Production-safe drowsiness detection without dlib dependency"""
+    print("Production drowsiness detection started.")
+    
+    try:
+        import cv2
+        cap = cv2.VideoCapture(webcam_index)
+        if not cap.isOpened():
+            print(f"Error: Could not open camera {webcam_index}")
+            return
+        
+        print("Camera opened successfully")
+        frame_count = 0
+        drowsy_frame_count = 0
+        yawn_frame_count = 0
+        
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print("Error: Could not read frame")
+                break
+                
+            frame_count += 1
+            
+            # Use the production detector
+            try:
+                is_drowsy, is_yawning, annotated_frame = detector.detect_drowsiness(frame)
+                
+                # Handle drowsiness detection
+                if is_drowsy:
+                    drowsy_frame_count += 1
+                    if drowsy_frame_count >= ear_frames:
+                        print("Drowsiness detected - saving alert")
+                        
+                        # Create alert
+                        alert = Alert(
+                            driver=driver_profile,
+                            alert_type="drowsiness",
+                            description="Drowsiness detected!"
+                        )
+                        await sync_to_async(alert.save, thread_sensitive=True)()
+                        
+                        # Send email notification
+                        try:
+                            subject = "Drowsiness Alert"
+                            email_template = "drowsiness_alert.html"
+                            context = {
+                                "driver": driver_profile,
+                                "alert": alert,
+                                "driver_first_name": driver_profile.user.first_name,
+                            }
+                            message = render_to_string(email_template, context)
+                            email = EmailMessage(subject, message, to=[driver_email])
+                            email.content_subtype = "html"
+                            email.send()
+                            print("Alert email sent successfully")
+                        except Exception as email_error:
+                            print(f"Error sending email: {email_error}")
+                        
+                        drowsy_frame_count = 0  # Reset counter
+                else:
+                    drowsy_frame_count = max(0, drowsy_frame_count - 1)  # Decay counter
+                
+                # Handle yawn detection
+                if is_yawning:
+                    yawn_frame_count += 1
+                    if yawn_frame_count >= ear_frames:
+                        print("Yawn detected - saving alert")
+                        
+                        # Create alert
+                        alert = Alert(
+                            driver=driver_profile,
+                            alert_type="yawning",
+                            description="Yawn detected!"
+                        )
+                        await sync_to_async(alert.save, thread_sensitive=True)()
+                        
+                        yawn_frame_count = 0  # Reset counter
+                else:
+                    yawn_frame_count = max(0, yawn_frame_count - 1)  # Decay counter
+                
+                # Break condition (in production, this might be controlled differently)
+                if frame_count % 100 == 0:  # Log every 100 frames
+                    print(f"Processed {frame_count} frames")
+                
+                # Allow async context switching
+                await asyncio.sleep(0.01)
+                
+            except Exception as detection_error:
+                print(f"Error in detection: {detection_error}")
+                await asyncio.sleep(0.1)  # Brief pause before retrying
+                
+    except Exception as e:
+        print(f"Error in production detection: {e}")
+    finally:
+        if 'cap' in locals():
+            cap.release()
+        print("Production drowsiness detection completed.")

@@ -18,7 +18,7 @@ from .services.user_service import user_service
 from .services.detection_service import detection_service
 from .services.alert_service import alert_service
 from .core.exceptions import CameraError, DetectionError
-from .tasks import drowsiness_detection_task  # Use the original task
+from .tasks_fixed import drowsiness_detection_task_sync  # Use the fixed task
 
 
 logger = logging.getLogger(__name__)
@@ -116,9 +116,6 @@ def start_monitoring_sync(request):
                 logger.error(f"Detection task failed: {e}")
             finally:
                 monitoring_active = False
-        
-        # Import and use the fixed detection task
-        from .tasks_fixed import drowsiness_detection_task_sync
         
         # Start the detection in a background thread
         def run_detection():
