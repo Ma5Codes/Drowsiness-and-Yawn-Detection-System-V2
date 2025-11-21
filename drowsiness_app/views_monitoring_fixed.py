@@ -160,22 +160,32 @@ def start_monitoring_sync(request):
 
 
 def stop_monitoring_sync(request):
-    """Stop monitoring process - SYNCHRONOUS VERSION"""
+    """Stop monitoring process - SYNCHRONOUS VERSION WITH BETTER ERROR HANDLING"""
     global monitoring_thread, monitoring_active
     
     try:
-        if not monitoring_active:
+        # Check current state
+        session_active = request.session.get('monitoring_active', False)
+        thread_alive = monitoring_thread is not None and monitoring_thread.is_alive() if monitoring_thread else False
+        
+        # If neither global nor session shows active, but thread is alive, force stop
+        if not monitoring_active and not session_active and not thread_alive:
             return JsonResponse({
                 "success": False,
                 "message": "Monitoring is not currently active."
             })
         
-        # Signal to stop monitoring
+        # Force stop everything regardless of state
         monitoring_active = False
         
         # Close any OpenCV windows
         import cv2
         cv2.destroyAllWindows()
+        
+        # If thread exists and is alive, we can't force kill it but signal it to stop
+        if monitoring_thread and thread_alive:
+            # The thread should check monitoring_active flag and stop
+            logger.info("Signaling monitoring thread to stop")
         
         # Clear session
         request.session['monitoring_active'] = False
@@ -192,27 +202,51 @@ def stop_monitoring_sync(request):
         
     except Exception as e:
         logger.error(f"Stop monitoring error: {e}")
+        # Even if there's an error, try to clean up state
+        monitoring_active = False
+        request.session['monitoring_active'] = False
+        try:
+            import cv2
+            cv2.destroyAllWindows()
+        except:
+            pass
+            
         return JsonResponse({
-            "success": False,
-            "message": f"Failed to stop monitoring: {str(e)}"
-        }, status=500)
+            "success": True,  # Still return success since we cleaned up
+            "action": "stop", 
+            "message": f"Monitoring stopped with cleanup (error: {str(e)})"
+        })
 
 
 @login_required
 def get_monitoring_status(request):
-    """Get current monitoring status"""
+    """Get current monitoring status with better synchronization"""
     try:
-        global monitoring_active
+        global monitoring_active, monitoring_thread
         
-        # Check session state as well
+        # Check if monitoring thread is still alive
+        thread_alive = False
+        if monitoring_thread is not None:
+            thread_alive = monitoring_thread.is_alive()
+            # If thread died but monitoring_active is True, reset it
+            if not thread_alive and monitoring_active:
+                monitoring_active = False
+                request.session['monitoring_active'] = False
+                logger.warning("Monitoring thread died, resetting status")
+        
+        # Sync session state with global state
         session_active = request.session.get('monitoring_active', False)
+        if session_active != monitoring_active:
+            request.session['monitoring_active'] = monitoring_active
+            
         camera_index = request.session.get('monitoring_camera', 0)
         
         status = {
-            'is_monitoring': monitoring_active or session_active,
+            'is_monitoring': monitoring_active,
             'detector_type': 'MediaPipe/OpenCV',
             'camera_index': camera_index,
-            'thread_active': monitoring_thread is not None and monitoring_thread.is_alive() if monitoring_thread else False
+            'thread_active': thread_alive,
+            'session_active': session_active
         }
         
         return JsonResponse({
@@ -224,8 +258,15 @@ def get_monitoring_status(request):
         logger.error(f"Status check error: {e}")
         return JsonResponse({
             "success": False,
-            "message": "Failed to get monitoring status."
-        }, status=500)
+            "message": "Failed to get monitoring status.",
+            "status": {
+                'is_monitoring': False,
+                'detector_type': 'Unknown',
+                'camera_index': 0,
+                'thread_active': False,
+                'session_active': False
+            }
+        }, status=200)  # Still return 200 but with error info
 
 
 def test_camera_view(request):

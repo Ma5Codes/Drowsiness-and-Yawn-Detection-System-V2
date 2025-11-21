@@ -183,9 +183,13 @@
             updateThemeIcons(savedTheme);
         });
         
-        // Profile Dropdown
+        // Profile Dropdown with better event handling
         function toggleProfileDropdown(element) {
+            console.log('Toggle profile dropdown called'); // Debug log
             element.classList.toggle('open');
+            
+            // Debug: log current state
+            console.log('Dropdown open:', element.classList.contains('open'));
         }
         
         // Close dropdown when clicking outside
@@ -193,6 +197,32 @@
             const dropdown = document.querySelector('.profile-dropdown');
             if (dropdown && !dropdown.contains(event.target)) {
                 dropdown.classList.remove('open');
+            }
+        });
+        
+        // Ensure dropdown functionality on DOM ready
+        document.addEventListener('DOMContentLoaded', function() {
+            const profileTrigger = document.querySelector('.profile-trigger');
+            const dropdown = document.querySelector('.profile-dropdown');
+            
+            if (profileTrigger && dropdown) {
+                console.log('Profile dropdown initialized');
+                
+                // Add click event as backup
+                profileTrigger.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('open');
+                });
+                
+                // Ensure logout link works
+                const logoutLink = dropdown.querySelector('a[href*="logout"]');
+                if (logoutLink) {
+                    console.log('Logout link found:', logoutLink.href);
+                } else {
+                    console.warn('Logout link not found in dropdown');
+                }
+            } else {
+                console.warn('Profile dropdown elements not found');
             }
         });
         

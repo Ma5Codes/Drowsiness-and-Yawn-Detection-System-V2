@@ -469,22 +469,41 @@ async function stopMonitoring() {
     
     const data = await response.json();
     
+    // Always update UI to stopped state if backend says success
     if (data.success) {
-      panel.classList.remove('active');
-      statusText.textContent = 'Ready to Monitor';
-      description.textContent = 'Click start to begin real-time drowsiness detection';
-      icon.className = 'fas fa-eye-slash';
-      stopBtn.style.display = 'none';
-      startBtn.style.display = 'inline-flex';
+      updateUIState(false, false); // Force UI to stopped state
       updateMonitoringStatus(false);
-      
-      showNotification('Monitoring stopped successfully!', 'success');
+      showNotification(data.message || 'Monitoring stopped successfully!', 'success');
     } else {
-      throw new Error(data.message || 'Failed to stop monitoring');
+      // Even on failure, try to stop UI if it's a "not active" error
+      if (data.message && data.message.includes('not currently active')) {
+        updateUIState(false, false); // Sync UI with backend state
+        updateMonitoringStatus(false);
+        showNotification('Monitoring was already stopped', 'info');
+      } else {
+        throw new Error(data.message || 'Failed to stop monitoring');
+      }
     }
   } catch (error) {
-    showNotification('Error: ' + error.message, 'error');
+    // On any error, still try to clean up UI state
     console.error('Stop monitoring error:', error);
+    
+    // Check current status to see real state
+    try {
+      const statusResponse = await fetch('{% url "monitoring_status" %}');
+      const statusData = await statusResponse.json();
+      
+      if (statusData.status && !statusData.status.is_monitoring) {
+        // Backend shows stopped, sync UI
+        updateUIState(false, false);
+        updateMonitoringStatus(false);
+        showNotification('Monitoring stopped (cleaned up after error)', 'warning');
+      } else {
+        showNotification('Error: ' + error.message, 'error');
+      }
+    } catch (statusError) {
+      showNotification('Error stopping monitoring: ' + error.message, 'error');
+    }
   }
   
   stopBtn.disabled = false;
@@ -560,28 +579,75 @@ function updateMonitoringStatus(isMonitoring) {
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', function() {
   // Check initial monitoring status
-  fetch('{% url "monitoring_status" %}')
-    .then(response => response.json())
-    .then(data => {
-      if (data.success && data.status) {
-        updateMonitoringStatus(data.status.is_monitoring);
-        
-        if (data.status.is_monitoring) {
-          const panel = document.getElementById('monitoring-panel');
-          const statusText = document.getElementById('monitoring-status-text');
-          const description = document.getElementById('monitoring-description');
-          const startBtn = document.getElementById('start-monitoring-btn');
-          const stopBtn = document.getElementById('stop-monitoring-btn');
-          
-          panel.classList.add('active');
-          statusText.textContent = 'Monitoring Active';
-          description.textContent = 'Real-time drowsiness detection in progress';
-          startBtn.style.display = 'none';
-          stopBtn.style.display = 'inline-flex';
-        }
-      }
-    })
-    .catch(error => console.log('Status check failed:', error));
+  checkAndUpdateMonitoringStatus();
+  
+  // Check status periodically to keep UI in sync
+  setInterval(checkAndUpdateMonitoringStatus, 3000); // Every 3 seconds
 });
+
+// Function to check and update monitoring status
+async function checkAndUpdateMonitoringStatus() {
+  try {
+    const response = await fetch('{% url "monitoring_status" %}');
+    const data = await response.json();
+    
+    console.log('Status check:', data); // Debug logging
+    
+    if (data.status) {
+      const isMonitoring = data.status.is_monitoring;
+      const threadActive = data.status.thread_active;
+      
+      updateMonitoringStatus(isMonitoring);
+      updateUIState(isMonitoring, threadActive);
+      
+      // If status shows not monitoring but thread died, show notification
+      if (!isMonitoring && !threadActive && data.status.session_active) {
+        showNotification('Monitoring stopped unexpectedly', 'warning');
+      }
+    } else if (data.success === false) {
+      console.warn('Status check failed:', data.message);
+      // Reset UI to safe state on error
+      updateUIState(false, false);
+    }
+  } catch (error) {
+    console.log('Status check failed:', error);
+    // Reset UI to safe state on network error
+    updateUIState(false, false);
+  }
+}
+
+// Function to update UI state based on monitoring status
+function updateUIState(isMonitoring, threadActive) {
+  const panel = document.getElementById('monitoring-panel');
+  const statusText = document.getElementById('monitoring-status-text');
+  const description = document.getElementById('monitoring-description');
+  const startBtn = document.getElementById('start-monitoring-btn');
+  const stopBtn = document.getElementById('stop-monitoring-btn');
+  const icon = document.getElementById('monitoring-icon');
+  
+  if (!panel || !statusText || !startBtn || !stopBtn) return;
+  
+  if (isMonitoring) {
+    panel.classList.add('active');
+    statusText.textContent = 'Monitoring Active';
+    description.textContent = 'Real-time drowsiness detection in progress';
+    icon.className = 'fas fa-eye';
+    startBtn.style.display = 'none';
+    stopBtn.style.display = 'inline-flex';
+  } else {
+    panel.classList.remove('active');
+    statusText.textContent = 'Ready to Monitor';
+    description.textContent = 'Click start to begin real-time drowsiness detection';
+    icon.className = 'fas fa-eye-slash';
+    stopBtn.style.display = 'none';
+    startBtn.style.display = 'inline-flex';
+  }
+  
+  // Reset button states in case they're disabled
+  startBtn.disabled = false;
+  stopBtn.disabled = false;
+  startBtn.innerHTML = '<i class="fas fa-play me-1"></i> Start Monitoring';
+  stopBtn.innerHTML = '<i class="fas fa-stop me-1"></i> Stop Monitoring';
+}
 </script>
 {% endblock %}
