@@ -6,11 +6,30 @@ import sys
 
 def main():
     """Run administrative tasks."""
+    # Debug environment variables
+    railway_env = os.environ.get('RAILWAY_ENVIRONMENT')
+    database_url = os.environ.get('DATABASE_URL')
+    port = os.environ.get('PORT')
+    
+    print(f"🔍 Environment detection:")
+    print(f"  RAILWAY_ENVIRONMENT: {railway_env}")
+    print(f"  DATABASE_URL present: {bool(database_url)}")
+    print(f"  PORT: {port}")
+    
     # Automatically use production settings on Railway or when DATABASE_URL is present
-    if os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('DATABASE_URL'):
+    # Also check for PORT (Railway sets this)
+    is_production = (
+        railway_env is not None or 
+        database_url is not None or 
+        port is not None
+    )
+    
+    if is_production:
         settings_module = 'drowsiness_project.settings_production'
+        print(f"🚀 Using PRODUCTION settings: {settings_module}")
     else:
         settings_module = 'drowsiness_project.settings'
+        print(f"🏠 Using DEVELOPMENT settings: {settings_module}")
     
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', settings_module)
     try:
