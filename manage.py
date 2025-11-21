@@ -6,7 +6,13 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'drowsiness_project.settings')
+    # Automatically use production settings on Railway or when DATABASE_URL is present
+    if os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('DATABASE_URL'):
+        settings_module = 'drowsiness_project.settings_production'
+    else:
+        settings_module = 'drowsiness_project.settings'
+    
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', settings_module)
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
